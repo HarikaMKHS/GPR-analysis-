@@ -295,3 +295,260 @@ function downloadPDF() {
 
 </body>
 </html>
+=======
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GP&R Analysis of the Day</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #4ebedd;
+    }
+    body {
+    background-image: url(https://wallpapers.com/images/featured/stock-market-pd5zksxr07t7a4xu.jpg);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+  
+  }
+    h1 {
+      text-align: center;
+    }
+    .form-group {
+      margin-bottom: 15px;
+      font-size: large;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+    }
+    button {
+      margin-top: 10px;
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      border: none;
+      cursor: pointer;
+    }
+    .add-btn {
+      background-color: #15802b;
+      color: white;
+    }
+    .pdf-btn {
+      background-color: #2196F3;
+      color: white;
+      display: none;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 20px;
+      background: white;
+      border: 2px solid #ccc;
+      display: none;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 25px;
+    }
+    table, th, td {
+      border: 1px solid #999;
+    }
+    th {
+      background-color: orange;
+      padding: 10px;
+    }
+    td {
+      background-color: #e0f0ff;
+      text-align: center;
+      padding: 8px;
+    }
+    .R-cell td {
+      background-color: orange;
+      color: white;
+      font-weight: bold;
+    }
+    #printArea {
+  width: 80%;           /* PDF capture area */
+  margin: auto;
+  transform: scale(0.8); /* Shrink slightly if needed */
+  transform-origin: top left;
+}
+  </style>
+</head>
+<body>
+
+<h1 id="pageTitle"><u>GP&R Analysis Report - <span id="todayDate"></u></span></h1>
+
+
+<!-- Input Form -->
+<div class="form-group">
+  <label for="instrument">Instrument Type</label>
+  <select id="instrument" onchange="updateLotSize()">
+    <option value="">Select Instrument</option>
+    <option value="Nifty">Nifty </option>
+    <option value="Sensex">Sensex </option>
+    <option value="Bank Nifty">Bank Nifty</option>
+  </select>
+</div>
+
+<div class="form-group">
+  <label for="lotSize">Lot Size</label>
+  <input type="number" id="lotSize" readonly>
+</div>
+
+<div class="form-group">
+  <label for="lotB">Lot B (Number of Lots)</label>
+  <input type="number" id="lotB">
+</div>
+
+<div class="form-group">
+  <label for="entryPrice">Entry Price</label>
+  <input type="number" id="entryPrice">
+</div>
+
+<div class="form-group">
+  <label for="exitPrice">Exit Price</label>
+  <input type="number" id="exitPrice">
+</div>
+
+<button class="add-btn" onclick="addEntry()"><b>Add Entry</b></button>
+<!-- Output Area -->
+<div class="result" id="printArea">
+  <h2 style="text-align:center;",id="pageTitle">GP&R Analysis Report-<span id="subDate"></span></h2>
+  <div id="entriesContainer"></div>
+</div>
+
+<button class="pdf-btn" onclick="downloadPDF()" id="downloadBtn">Download as PDF</button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<script>
+let entries = [];
+function formatDate() {
+  const today = new Date();
+  const day = String(today.getDate()).padStart(2, '0');
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const year = today.getFullYear();
+  return `${day}-${month}-${year}`;
+}
+
+window.onload = function () {
+  const date = formatDate();
+  document.getElementById('todayDate').textContent = date;
+  document.getElementById('subDate').textContent = date;
+};
+
+function updateLotSize() {
+  const instrument = document.getElementById('instrument').value;
+  const lotSizeField = document.getElementById('lotSize');
+  lotSizeField.value = instrument === "Nifty" ? 75 : instrument === "Sensex" ? 20: instrument === "Bank Nifty" ? 35 : "";
+}
+
+function addEntry() {
+  const instrument = document.getElementById('instrument').value;
+  const lotSize = parseFloat(document.getElementById('lotSize').value);
+  const lotB = parseFloat(document.getElementById('lotB').value);
+  const entryPrice = parseFloat(document.getElementById('entryPrice').value);
+  const exitPrice = parseFloat(document.getElementById('exitPrice').value);
+
+  if (!instrument || isNaN(lotSize) || isNaN(lotB) || isNaN(entryPrice) || isNaN(exitPrice)) {
+    alert("Please fill all fields correctly.");
+    return;
+  }
+
+  const totalLS = lotSize * lotB;
+  const investmentAmount = entryPrice * totalLS;
+  const profitLoss = (exitPrice - entryPrice) * totalLS;
+  const returnPercent = (profitLoss / investmentAmount) * 100;
+  const EIV = exitPrice * totalLS;
+  const entry = {
+    instrument,
+    lotSize,
+    lotB,
+    entryPrice,
+    exitPrice,
+    totalLS,
+    EIV,
+    investmentAmount: investmentAmount.toFixed(2),
+    profitLoss: profitLoss.toFixed(2),
+    returnPercent: returnPercent.toFixed(2)
+  };
+
+  entries.push(entry);
+  renderEntries();
+  document.getElementById('printArea').style.display = 'block';
+  document.getElementById('downloadBtn').style.display = 'block';
+
+  // Reset form
+  document.getElementById('lotB').value = '';
+  document.getElementById('entryPrice').value = '';
+  document.getElementById('exitPrice').value = '';
+}
+
+function renderEntries() {
+  const container = document.getElementById('entriesContainer');
+  container.innerHTML = '';
+
+  entries.forEach((entry, idx) => {
+    const tableHTML = `
+      <table>
+        <tbody>
+          <tr><th colspan="2">Entry ${idx + 1}</th></tr>
+          <tr><td>Instrument Type</td><td>${entry.instrument}</td></tr>
+          <tr><td>Investment Amount</td><td>${entry.investmentAmount}</td></tr>
+          <tr><td>Lot Size</td><td>${entry.lotSize}</td></tr>
+          <tr><td>Lot B</td><td>${entry.lotB}</td></tr>
+          <tr><td>Entry Price</td><td>${entry.entryPrice}</td></tr>
+          <tr><td>Exit Price</td><td>${entry.exitPrice}</td></tr>
+          <tr><td>Total Lot Size (Total LS)</td><td>${entry.totalLS}</td></tr>
+          <tr><td>EIV</td><td>${entry.EIV}</td></tr>
+          <tr><td>Profit / Loss (P/L)</td><td>${entry.profitLoss}</td></tr>
+          <tr class="R-cell"><td>R</td><td>${entry.returnPercent}%</td></tr>
+        </tbody>
+      </table>`;
+    container.innerHTML += tableHTML;
+  });
+}
+
+function downloadPDF() {
+  const element = document.getElementById('printArea');
+  const today = new Date();
+  const day = String(today.getDate()).padStart(2, '0');
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const year = today.getFullYear();
+  const formattedDate = `${day}-${month}-${year}`;
+
+  const opt = {
+    margin: [0.5, 0.5, 0.5, 0.5],
+    filename: `GP&R Analysis Report - ${formattedDate}.pdf`,
+    image: { type: 'jpeg', quality: 1 },
+    html2canvas: {
+      scale: 2,
+      useCORS: true,
+      logging: true,
+      scrollY: 0
+    },
+    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+    
+  };
+
+  setTimeout(() => {
+    html2pdf().set(opt).from(element).save();
+  }, 500);
+}
+</script>
+
+
+</body>
+</html>
+
